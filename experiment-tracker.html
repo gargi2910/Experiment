@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab Rat — Life Experiment Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0e0f;
+    --surface: #141516;
+    --surface2: #1c1d1f;
+    --border: #2a2b2d;
+    --accent: #c8f135;
+    --accent2: #f13565;
+    --accent3: #35c8f1;
+    --text: #f0f0ee;
+    --muted: #6b6c6e;
+    --mood: #f1a535;
+    --prod: #c8f135;
+    --focus: #35c8f1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,241,53,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,241,53,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  header {
+    padding: 40px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo-block h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .logo-block h1 span {
+    color: var(--accent);
+  }
+
+  .logo-block p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 24px;
+  }
+
+  .stat-pill {
+    text-align: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 18px;
+  }
+
+  .stat-pill .val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-pill .lbl {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+
+  /* NEW EXPERIMENT BUTTON */
+  .btn-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #0d0e0f;
+    border: none;
+    border-radius: 6px;
+    padding: 12px 22px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 0 0 0 rgba(200,241,53,0);
+    margin-bottom: 32px;
+  }
+
+  .btn-new:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(200,241,53,0.25);
+  }
+
+  /* MODAL OVERLAY */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.2s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .modal h2 .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    background: var(--accent);
+    color: #0d0e0f;
+    padding: 3px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+  }
+
+  .field { margin-bottom: 18px; }
+
+  .field label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: vertical;
+  }
+
+  .field input:focus, .field textarea:focus, .field select:focus {
+    border-color: var(--accent);
+  }
+
+  .field textarea { min-height: 80px; }
+
+  /* METRIC TOGGLES */
+  .metric-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .metric-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.82rem;
+    font-weight: 600;
+    user-select: none;
+  }
+
+  .metric-toggle:hover { border-color: var(--muted); }
+  .metric-toggle.active-mood { border-color: var(--mood); color: var(--mood); background: rgba(241,165,53,0.08); }
+  .metric-toggle.active-productivity { border-color: var(--prod); color: var(--prod); background: rgba(200,241,53,0.08); }
+  .metric-toggle.active-focus { border-color: var(--focus); color: var(--focus); background: rgba(53,200,241,0.08); }
+
+  /* STAR RATING */
+  .stars {
+    display: flex;
+    gap: 6px;
+  }
+
+  .star {
+    font-size: 1.3rem;
+    cursor: pointer;
+    opacity: 0.25;
+    transition: opacity 0.1s, transform 0.1s;
+    line-height: 1;
+  }
+
+  .star.lit { opacity: 1; }
+  .star:hover { transform: scale(1.2); }
+
+  /* STATUS TOGGLE */
+  .status-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .status-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .status-btn.active-running { border-color: var(--accent3); color: var(--accent3); background: rgba(53,200,241,0.08); }
+  .status-btn.active-completed { border-color: var(--accent); color: var(--accent); background: rgba(200,241,53,0.08); }
+  .status-btn.active-abandoned { border-color: var(--accent2); color: var(--accent2); background: rgba(241,53,101,0.08); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .btn-save {
+    flex: 1;
+    background: var(--accent);
+    color: #0d0e0f;
+    border: none;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-save:hover { opacity: 0.85; }
+
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 20px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .btn-cancel:hover { border-color: var(--muted); }
+
+  /* FILTERS */
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 4px;
+  }
+
+  .filter-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn.active, .filter-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* EXPERIMENTS GRID */
+  .experiments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .exp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    transition: transform 0.15s, border-color 0.15s;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .exp-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .exp-card.status-running::before { background: var(--accent3); }
+  .exp-card.status-completed::before { background: var(--accent); }
+  .exp-card.status-abandoned::before { background: var(--accent2); }
+
+  .exp-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--muted);
+  }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.3;
+    flex: 1;
+    margin-right: 10px;
+  }
+
+  .card-status {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .status-running .card-status { background: rgba(53,200,241,0.12); color: var(--accent3); }
+  .status-completed .card-status { background: rgba(200,241,53,0.12); color: var(--accent); }
+  .status-abandoned .card-status { background: rgba(241,53,101,0.12); color: var(--accent2); }
+
+  .card-emoji {
+    font-size: 1.6rem;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .card-note {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .card-duration {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  .card-metrics {
+    display: flex;
+    gap: 6px;
+  }
+
+  .metric-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    title: '';
+  }
+
+  .metric-dot.mood { background: rgba(241,165,53,0.15); color: var(--mood); }
+  .metric-dot.productivity { background: rgba(200,241,53,0.15); color: var(--prod); }
+  .metric-dot.focus { background: rgba(53,200,241,0.15); color: var(--focus); }
+
+  .card-stars {
+    font-size: 0.7rem;
+    margin-left: auto;
+  }
+
+  .card-actions {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: none;
+    gap: 6px;
+  }
+
+  .exp-card:hover .card-actions { display: flex; }
+
+  .card-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: all 0.12s;
+    color: var(--muted);
+  }
+
+  .card-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .card-btn.del:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 24px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
+
+  .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+  .empty-state p { font-size: 0.82rem; color: var(--muted); }
+
+  /* DETAIL PANEL */
+  .detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 90;
+    align-items: center;
+    justify-content: flex-end;
+    backdrop-filter: blur(2px);
+  }
+
+  .detail-overlay.open { display: flex; }
+
+  .detail-panel {
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    width: 100%;
+    max-width: 400px;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 32px 28px;
+    animation: slideLeft 0.2s ease;
+  }
+
+  @keyframes slideLeft {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .detail-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    margin-bottom: 24px;
+    transition: border-color 0.12s;
+  }
+
+  .detail-close:hover { border-color: var(--muted); }
+
+  .detail-emoji { font-size: 2.8rem; margin-bottom: 10px; }
+
+  .detail-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+
+  .detail-section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin: 20px 0 8px;
+  }
+
+  .detail-note {
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: rgba(240,240,238,0.8);
+  }
+
+  .detail-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .detail-meta-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+
+  .detail-meta-item .lbl {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .detail-meta-item .val {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .detail-metrics {
+    display: flex;
+    gap: 10px;
+  }
+
+  .detail-metric {
+    flex: 1;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .detail-metric .icon { font-size: 1.1rem; margin-bottom: 4px; }
+  .detail-metric .name { font-size: 0.65rem; color: var(--muted); margin-bottom: 6px; font-family: 'Space Mono', monospace; }
+  .detail-metric .score { font-size: 1.2rem; font-weight: 700; }
+
+  .detail-metric.mood .score { color: var(--mood); }
+  .detail-metric.productivity .score { color: var(--prod); }
+  .detail-metric.focus .score { color: var(--focus); }
+
+  .overall-score {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .overall-score .big { font-size: 2.5rem; font-weight: 800; color: var(--accent); }
+  .overall-score .lbl { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .section-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .count-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2px 9px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  @media (max-width: 600px) {
+    .header-stats { display: none; }
+    .detail-panel { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo-block">
+      <h1>Lab <span>Rat</span> 🐀</h1>
+      <p>Personal life experiment tracker</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill">
+        <div class="val" id="stat-total">0</div>
+        <div class="lbl">Total</div>
+      </div>
+      <div class="stat-pill">
+        <div class="val" id="stat-running">0</div>
+        <div class="lbl">Running</div>
+      </div>
+      <div class="stat-pill">
+        <div class="val" id="stat-avg">—</div>
+        <div class="lbl">Avg Score</div>
+      </div>
+    </div>
+  </header>
+
+  <button class="btn-new" onclick="openModal()">
+    <span>⚗️</span> New Experiment
+  </button>
+
+  <div class="section-header">
+    <h2>Experiments <span class="count-badge" id="count-badge">0</span></h2>
+    <div class="filters">
+      <span class="filter-label">Filter:</span>
+      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" onclick="setFilter('running', this)">🔬 Running</button>
+      <button class="filter-btn" onclick="setFilter('completed', this)">✅ Done</button>
+      <button class="filter-btn" onclick="setFilter('abandoned', this)">🚫 Abandoned</button>
+    </div>
+  </div>
+
+  <div class="experiments-grid" id="grid">
+    <div class="empty-state">
+      <div class="icon">🧪</div>
+      <h3>No experiments yet</h3>
+      <p>Start tracking your first life experiment above.</p>
+    </div>
+  </div>
+</div>
+
+<!-- NEW/EDIT MODAL -->
+<div class="overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <h2>
+      <span id="modal-title-text">New Experiment</span>
+      <span class="tag">PROTOCOL</span>
+    </h2>
+
+    <div class="field">
+      <label>Experiment Name</label>
+      <input type="text" id="exp-name" placeholder="e.g. Wake up at 6am for 30 days">
+    </div>
+
+    <div class="field">
+      <label>Emoji Icon</label>
+      <input type="text" id="exp-emoji" placeholder="🌅" maxlength="4" style="width:80px">
+    </div>
+
+    <div class="field">
+      <label>Start Date</label>
+      <input type="date" id="exp-start">
+    </div>
+
+    <div class="field">
+      <label>End Date (optional)</label>
+      <input type="date" id="exp-end">
+    </div>
+
+    <div class="field">
+      <label>Status</label>
+      <div class="status-row">
+        <button class="status-btn active-running" data-status="running" onclick="setStatus('running')">🔬 Running</button>
+        <button class="status-btn" data-status="completed" onclick="setStatus('completed')">✅ Completed</button>
+        <button class="status-btn" data-status="abandoned" onclick="setStatus('abandoned')">🚫 Abandoned</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Notes / Observations</label>
+      <textarea id="exp-notes" placeholder="What did you notice? Any side effects, surprises, or patterns?"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Metrics Improved (select all that apply)</label>
+      <div class="metric-row">
+        <div class="metric-toggle" data-metric="mood" onclick="toggleMetric(this)">😊 Mood</div>
+        <div class="metric-toggle" data-metric="productivity" onclick="toggleMetric(this)">⚡ Productivity</div>
+        <div class="metric-toggle" data-metric="focus" onclick="toggleMetric(this)">🎯 Focus</div>
+      </div>
+    </div>
+
+    <div class="field" id="mood-field" style="display:none">
+      <label>Mood Score (1–5)</label>
+      <div class="stars" id="mood-stars" data-metric="mood"></div>
+    </div>
+
+    <div class="field" id="productivity-field" style="display:none">
+      <label>Productivity Score (1–5)</label>
+      <div class="stars" id="productivity-stars" data-metric="productivity"></div>
+    </div>
+
+    <div class="field" id="focus-field" style="display:none">
+      <label>Focus Score (1–5)</label>
+      <div class="stars" id="focus-stars" data-metric="focus"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveExperiment()">Save Experiment</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-overlay" id="detail-overlay" onclick="handleDetailOverlay(event)">
+  <div class="detail-panel" id="detail-panel">
+    <button class="detail-close" onclick="closeDetail()">← Close</button>
+    <div class="detail-emoji" id="d-emoji"></div>
+    <div class="detail-name" id="d-name"></div>
+    <div class="detail-section-title">Overview</div>
+    <div class="detail-meta-grid" id="d-meta"></div>
+    <div class="detail-section-title">Notes</div>
+    <div class="detail-note" id="d-note"></div>
+    <div class="detail-section-title">Impact Scores</div>
+    <div class="detail-metrics" id="d-metrics"></div>
+    <div id="d-overall"></div>
+  </div>
+</div>
+
+<script>
+  // ——— DATA ———
+  let experiments = JSON.parse(localStorage.getItem('labrat-experiments') || '[]');
+  let editingId = null;
+  let currentFilter = 'all';
+  let currentStatus = 'running';
+  let activeMetrics = new Set();
+  let scores = { mood: 0, productivity: 0, focus: 0 };
+
+  function save() {
+    localStorage.setItem('labrat-experiments', JSON.stringify(experiments));
+    render();
+    updateStats();
+  }
+
+  // ——— MODAL ———
+  function openModal(id = null) {
+    editingId = id;
+    activeMetrics = new Set();
+    scores = { mood: 0, productivity: 0, focus: 0 };
+    currentStatus = 'running';
+
+    document.getElementById('modal-title-text').textContent = id ? 'Edit Experiment' : 'New Experiment';
+
+    if (id) {
+      const exp = experiments.find(e => e.id === id);
+      document.getElementById('exp-name').value = exp.name;
+      document.getElementById('exp-emoji').value = exp.emoji;
+      document.getElementById('exp-start').value = exp.start;
+      document.getElementById('exp-end').value = exp.end || '';
+      document.getElementById('exp-notes').value = exp.notes;
+      currentStatus = exp.status;
+      activeMetrics = new Set(exp.metrics || []);
+      scores = { ...exp.scores };
+    } else {
+      document.getElementById('exp-name').value = '';
+      document.getElementById('exp-emoji').value = '';
+      document.getElementById('exp-start').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('exp-end').value = '';
+      document.getElementById('exp-notes').value = '';
+    }
+
+    // Status buttons
+    document.querySelectorAll('.status-btn').forEach(btn => {
+      btn.className = 'status-btn';
+      if (btn.dataset.status === currentStatus) btn.classList.add('active-' + currentStatus);
+    });
+
+    // Metric toggles
+    document.querySelectorAll('.metric-toggle').forEach(t => {
+      t.className = 'metric-toggle';
+      if (activeMetrics.has(t.dataset.metric)) t.classList.add('active-' + t.dataset.metric);
+    });
+
+    // Score fields
+    ['mood', 'productivity', 'focus'].forEach(m => {
+      const field = document.getElementById(m + '-field');
+      field.style.display = activeMetrics.has(m) ? 'block' : 'none';
+      buildStars(m, scores[m] || 0);
+    });
+
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    editingId = null;
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  }
+
+  function setStatus(s) {
+    currentStatus = s;
+    document.querySelectorAll('.status-btn').forEach(btn => {
+      btn.className = 'status-btn';
+      if (btn.dataset.status === s) btn.classList.add('active-' + s);
+    });
+  }
+
+  function toggleMetric(el) {
+    const m = el.dataset.metric;
+    if (activeMetrics.has(m)) {
+      activeMetrics.delete(m);
+      el.className = 'metric-toggle';
+      document.getElementById(m + '-field').style.display = 'none';
+    } else {
+      activeMetrics.add(m);
+      el.classList.add('active-' + m);
+      document.getElementById(m + '-field').style.display = 'block';
+      buildStars(m, scores[m] || 0);
+    }
+  }
+
+  function buildStars(metric, current) {
+    const container = document.getElementById(metric + '-stars');
+    container.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const star = document.createElement('span');
+      star.className = 'star' + (i <= current ? ' lit' : '');
+      star.textContent = '★';
+      star.onclick = () => setScore(metric, i);
+      container.appendChild(star);
+    }
+  }
+
+  function setScore(metric, val) {
+    scores[metric] = val;
+    buildStars(metric, val);
+  }
+
+  function saveExperiment() {
+    const name = document.getElementById('exp-name').value.trim();
+    if (!name) { alert('Please enter an experiment name.'); return; }
+
+    const exp = {
+      id: editingId || Date.now().toString(),
+      name,
+      emoji: document.getElementById('exp-emoji').value.trim() || '🧪',
+      start: document.getElementById('exp-start').value,
+      end: document.getElementById('exp-end').value,
+      status: currentStatus,
+      notes: document.getElementById('exp-notes').value.trim(),
+      metrics: [...activeMetrics],
+      scores: { ...scores },
+      created: editingId ? experiments.find(e => e.id === editingId)?.created : Date.now()
+    };
+
+    if (editingId) {
+      const idx = experiments.findIndex(e => e.id === editingId);
+      experiments[idx] = exp;
+    } else {
+      experiments.unshift(exp);
+    }
+
+    save();
+    closeModal();
+  }
+
+  // ——— FILTER ———
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  // ——— RENDER ———
+  function render() {
+    const grid = document.getElementById('grid');
+    let list = currentFilter === 'all' ? experiments : experiments.filter(e => e.status === currentFilter);
+
+    document.getElementById('count-badge').textContent = list.length;
+
+    if (list.length === 0) {
+      grid.innerHTML = `<div class="empty-state"><div class="icon">🧪</div><h3>No experiments here</h3><p>${currentFilter === 'all' ? 'Start tracking your first life experiment.' : 'No ' + currentFilter + ' experiments yet.'}</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(exp => {
+      const duration = getDuration(exp);
+      const avgScore = getAvgScore(exp);
+      const starsHtml = avgScore > 0 ? '⭐'.repeat(Math.round(avgScore)) : '';
+
+      const metricsHtml = exp.metrics.map(m => {
+        const icons = { mood: '😊', productivity: '⚡', focus: '🎯' };
+        const score = exp.scores[m] || 0;
+        return `<div class="metric-dot ${m}" title="${m}: ${score}/5">${icons[m]}</div>`;
+      }).join('');
+
+      return `
+        <div class="exp-card status-${exp.status}" onclick="openDetail('${exp.id}')">
+          <div class="card-top">
+            <div class="card-name">${exp.name}</div>
+            <div class="card-status">${statusLabel(exp.status)}</div>
+          </div>
+          <span class="card-emoji">${exp.emoji}</span>
+          ${exp.notes ? `<div class="card-note">${exp.notes}</div>` : ''}
+          <div class="card-meta">
+            <span class="card-duration">📅 ${duration}</span>
+            <div class="card-metrics">${metricsHtml}</div>
+            ${starsHtml ? `<div class="card-stars">${starsHtml}</div>` : ''}
+          </div>
+          <div class="card-actions" onclick="event.stopPropagation()">
+            <div class="card-btn" onclick="openModal('${exp.id}')" title="Edit">✏️</div>
+            <div class="card-btn del" onclick="deleteExp('${exp.id}')" title="Delete">🗑</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function statusLabel(s) {
+    return { running: '🔬 Running', completed: '✅ Done', abandoned: '🚫 Dropped' }[s] || s;
+  }
+
+  function getDuration(exp) {
+    if (!exp.start) return '—';
+    const start = new Date(exp.start);
+    const end = exp.end ? new Date(exp.end) : new Date();
+    const days = Math.max(0, Math.round((end - start) / 86400000));
+    return days === 0 ? 'Day 1' : `${days}d`;
+  }
+
+  function getAvgScore(exp) {
+    if (!exp.metrics.length) return 0;
+    const total = exp.metrics.reduce((sum, m) => sum + (exp.scores[m] || 0), 0);
+    return total / exp.metrics.length;
+  }
+
+  function deleteExp(id) {
+    if (!confirm('Delete this experiment?')) return;
+    experiments = experiments.filter(e => e.id !== id);
+    save();
+  }
+
+  // ——— STATS ———
+  function updateStats() {
+    const total = experiments.length;
+    const running = experiments.filter(e => e.status === 'running').length;
+    const scored = experiments.filter(e => e.metrics.length > 0);
+    const avg = scored.length ? (scored.reduce((s, e) => s + getAvgScore(e), 0) / scored.length).toFixed(1) : '—';
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-running').textContent = running;
+    document.getElementById('stat-avg').textContent = avg === '—' ? '—' : avg + '/5';
+  }
+
+  // ——— DETAIL PANEL ———
+  function openDetail(id) {
+    const exp = experiments.find(e => e.id === id);
+    if (!exp) return;
+
+    document.getElementById('d-emoji').textContent = exp.emoji;
+    document.getElementById('d-name').textContent = exp.name;
+    document.getElementById('d-note').textContent = exp.notes || 'No notes recorded yet.';
+
+    const duration = getDuration(exp);
+    const start = exp.start ? new Date(exp.start).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
+    const end = exp.end ? new Date(exp.end).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : 'Ongoing';
+
+    document.getElementById('d-meta').innerHTML = `
+      <div class="detail-meta-item"><div class="lbl">Status</div><div class="val">${statusLabel(exp.status)}</div></div>
+      <div class="detail-meta-item"><div class="lbl">Duration</div><div class="val">${duration}</div></div>
+      <div class="detail-meta-item"><div class="lbl">Started</div><div class="val">${start}</div></div>
+      <div class="detail-meta-item"><div class="lbl">Ended</div><div class="val">${end}</div></div>
+    `;
+
+    const metricConfig = {
+      mood: { icon: '😊', label: 'Mood', cls: 'mood' },
+      productivity: { icon: '⚡', label: 'Productivity', cls: 'productivity' },
+      focus: { icon: '🎯', label: 'Focus', cls: 'focus' }
+    };
+
+    if (exp.metrics.length > 0) {
+      const metricsHtml = exp.metrics.map(m => {
+        const cfg = metricConfig[m];
+        const score = exp.scores[m] || 0;
+        const stars = '★'.repeat(score) + '☆'.repeat(5 - score);
+        return `<div class="detail-metric ${cfg.cls}"><div class="icon">${cfg.icon}</div><div class="name">${cfg.label}</div><div class="score">${stars}</div></div>`;
+      }).join('');
+      document.getElementById('d-metrics').innerHTML = metricsHtml;
+
+      const avg = getAvgScore(exp).toFixed(1);
+      document.getElementById('d-overall').innerHTML = `
+        <div class="overall-score">
+          <div class="big">${avg}</div>
+          <div class="lbl">Average Impact Score / 5</div>
+        </div>`;
+    } else {
+      document.getElementById('d-metrics').innerHTML = `<div style="color:var(--muted);font-size:0.82rem;padding:10px 0">No metrics tracked for this experiment.</div>`;
+      document.getElementById('d-overall').innerHTML = '';
+    }
+
+    document.getElementById('detail-overlay').classList.add('open');
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-overlay').classList.remove('open');
+  }
+
+  function handleDetailOverlay(e) {
+    if (e.target === document.getElementById('detail-overlay')) closeDetail();
+  }
+
+  // ——— SEED DATA ———
+  function seedIfEmpty() {
+    if (experiments.length > 0) return;
+    experiments = [
+      {
+        id: '1',
+        name: 'Wake up at 6:00 AM',
+        emoji: '🌅',
+        start: '2026-02-01',
+        end: '2026-03-01',
+        status: 'completed',
+        notes: 'Harder the first week but felt amazing after day 10. More quiet time in the morning.',
+        metrics: ['mood', 'productivity', 'focus'],
+        scores: { mood: 4, productivity: 5, focus: 4 },
+        created: Date.now()
+      },
+      {
+        id: '2',
+        name: 'No caffeine for 21 days',
+        emoji: '🚫☕',
+        start: '2026-03-01',
+        end: '',
+        status: 'running',
+        notes: 'Day 12. Headaches the first 3 days. Sleep improved a lot. Still feel sluggish at 2pm.',
+        metrics: ['mood', 'focus'],
+        scores: { mood: 3, productivity: 0, focus: 4 },
+        created: Date.now()
+      },
+      {
+        id: '3',
+        name: 'Daily journaling (5 min)',
+        emoji: '📓',
+        start: '2026-01-15',
+        end: '2026-02-15',
+        status: 'completed',
+        notes: 'Simple habit but surprisingly useful for clarity. Felt less anxious.',
+        metrics: ['mood'],
+        scores: { mood: 5, productivity: 0, focus: 0 },
+        created: Date.now()
+      },
+      {
+        id: '4',
+        name: 'Cold shower every morning',
+        emoji: '🚿',
+        start: '2026-02-20',
+        end: '2026-03-05',
+        status: 'abandoned',
+        notes: 'Too uncomfortable. Dropped after 13 days. No noticeable benefits.',
+        metrics: ['focus'],
+        scores: { mood: 0, productivity: 0, focus: 2 },
+        created: Date.now()
+      }
+    ];
+    save();
+  }
+
+  // ——— INIT ———
+  seedIfEmpty();
+  render();
+  updateStats();
+</script>
+</body>
+</html>
